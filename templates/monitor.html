@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>集群监控</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .node {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px;
+            display: inline-block;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+        .master { 
+            background-color: #f0f0f0;
+            border-left: 5px solid #007bff;
+        }
+        .slave { 
+            background-color: #e0e0e0;
+            border-left: 5px solid #28a745;
+        }
+        .algorithm-stats {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        .status-ok { color: #28a745; }
+        .status-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>集群状态监控</h1>
+    
+    <div class="node master">
+        <h2>主节点</h2>
+        <p>状态: <span class="status-{{ 'ok' if status.master_status == 'running' else 'error' }}">
+            {{ status.master_status }}
+        </span></p>
+        <p>总从节点数: {{ status.slaves|length }}</p>
+    </div>
+    
+    <h2>从节点</h2>
+    {% for slave in status.slaves %}
+    <div class="node slave">
+        <h3>节点: {{ slave.address[0] }}:{{ slave.address[1] }}</h3>
+        <p>总任务数: {{ slave.tasks|default(0) }}</p>
+        <p>总执行时间: {{ "%.2f"|format(slave.total_execution_time|default(0)) }}秒</p>
+        <p>最后心跳: {{ "%.2f"|format(time.time() - slave.last_heartbeat) }}秒前</p>
+        
+        <div class="algorithm-stats">
+            <h4>算法使用统计:</h4>
+            {% if slave.algorithm_stats %}
+                {% for algo, stats in slave.algorithm_stats.items() %}
+                <p>{{ algo }}: {{ stats.count }}次 (平均{{ "%.2f"|format(stats.avg_time) }}秒)</p>
+                {% endfor %}
+            {% else %}
+                <p>暂无算法使用统计</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    <script>
+        setTimeout(function() {
+            location.reload();
+        }, 5000);
+    </script>
+</body>
+</html> 
